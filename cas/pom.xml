@@ -10,6 +10,9 @@
     <artifactId>cas</artifactId>
     <packaging>war</packaging>
     <name>cas</name>
+    <build>
+        <finalName>${project.artifactId}</finalName>
+    </build>
     <dependencies>
         <dependency>
             <groupId>org.jasig.cas</groupId>
