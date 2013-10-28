@@ -6,20 +6,25 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
                         http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd">
 
+    <sec:ldap-user-service id="ldapUserDetailsService" user-search-base="ou=users,ou=system" user-search-filter="(uid={0})"
+                           group-search-base="ou=groups,ou=system" group-search-filter="(uniqueMember={0})" group-role-attribute="cn"
+                           server-ref="apacheDsLdapServer" role-prefix="ROLE_" />
+
+    <sec:ldap-server id="apacheDsLdapServer" manager-dn="uid=admin,ou=system" manager-password="secret" port="10389"
+                     url="ldap://tomcat:10389/" />
+
     <bean id="springSecurityFilterChain" class="org.springframework.security.web.FilterChainProxy">
         <sec:filter-chain-map path-type="ant">
-            <sec:filter-chain pattern="/j_spring_security_logout" filters="logoutFilter,etf,fsi" />
-            <sec:filter-chain pattern="/secured*" filters="casAuthenticationFilter, casValidationFilter, wrappingFilter, sif,j2eePreAuthFilter,logoutFilter,etf,fsi"/>
+            <sec:filter-chain pattern="/secured*" filters="casAuthenticationFilter, casValidationFilter, wrappingFilter,j2eePreAuthFilter, fsi"/>
+            <sec:filter-chain pattern="/home*" filters="wrappingFilter, j2eePreAuthFilter, fsi" />
         </sec:filter-chain-map>
     </bean>
-
-    <bean id="sif" class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
-
-    <bean id="webExpressionHandler" class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler" />
 
     <sec:authentication-manager alias="authenticationManager">
         <sec:authentication-provider ref="preAuthAuthProvider"/>
     </sec:authentication-manager>
+
+    <bean id="webExpressionHandler" class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler" />
 
     <bean id="preAuthAuthProvider" class="org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider">
         <property name="preAuthenticatedUserDetailsService">
@@ -29,28 +34,11 @@
         </property>
     </bean>
 
-    <bean id="preAuthEntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
-
     <bean id="j2eePreAuthFilter" class="org.springframework.security.web.authentication.preauth.j2ee.J2eePreAuthenticatedProcessingFilter">
         <property name="authenticationManager" ref="authenticationManager"/>
         <property name="authenticationDetailsSource">
             <bean class="org.springframework.security.web.authentication.WebAuthenticationDetailsSource" />
         </property>
-    </bean>
-
-    <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
-        <constructor-arg value="/"/>
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
-            </list>
-        </constructor-arg>
-    </bean>
-
-    <bean id="servletContext" class="org.springframework.web.context.support.ServletContextFactoryBean"/>
-
-    <bean id="etf" class="org.springframework.security.web.access.ExceptionTranslationFilter">
-        <property name="authenticationEntryPoint" ref="preAuthEntryPoint"/>
     </bean>
 
     <bean id="httpRequestAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
@@ -68,27 +56,16 @@
         <property name="securityMetadataSource">
             <sec:filter-invocation-definition-source>
                 <sec:intercept-url pattern="/secured*" access="ROLE_ADMINISTRATORS"/>
-                <sec:intercept-url pattern="/home*" access="ROLE_USER"/>
+                <sec:intercept-url pattern="/home*" />
             </sec:filter-invocation-definition-source>
         </property>
     </bean>
 
     <bean id="roleVoter" class="org.springframework.security.access.vote.RoleVoter"/>
 
-    <bean id="securityContextHolderAwareRequestFilter" class="org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter"/>
-
     <bean class="org.jasig.cas.client.validation.Cas20ServiceTicketValidator" id="ticketValidator">
         <constructor-arg index="0" value="https://tomcat:8443/cas" />
     </bean>
-
-    <bean id="proxyGrantingTicketStorage" class="org.jasig.cas.client.proxy.ProxyGrantingTicketStorageImpl" />
-
-    <sec:ldap-user-service id="ldapUserDetailsService" user-search-base="ou=users,ou=system" user-search-filter="(uid={0})"
-                       group-search-base="ou=groups,ou=system" group-search-filter="(uniqueMember={0})" group-role-attribute="cn"
-                       server-ref="apacheDsLdapServer" role-prefix="ROLE_" />
-
-    <sec:ldap-server id="apacheDsLdapServer" manager-dn="uid=admin,ou=system" manager-password="secret" port="10389"
-                 url="ldap://tomcat:10389/" />
 
     <bean id="casAuthenticationFilter" class="org.jasig.cas.client.authentication.AuthenticationFilter">
         <property name="casServerLoginUrl" value="https://tomcat:8443/cas/login" />
@@ -104,87 +81,3 @@
 
     <bean id="wrappingFilter" class="org.jasig.cas.client.util.HttpServletRequestWrapperFilter" />
 </beans>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!--
-<beans:beans xmlns="http://www.springframework.org/schema/security"
-             xmlns:beans="http://www.springframework.org/schema/beans"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://www.springframework.org/schema/beans
-	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-	http://www.springframework.org/schema/security
-	http://www.springframework.org/schema/security/spring-security-3.1.xsd">
-
-    <http auto-config="true" use-expressions="true" disable-url-rewriting="true" entry-point-ref="casEntryPoint">
-        <intercept-url pattern="/*" />
-        <intercept-url pattern="/secured*" access="hasRole('ROLE_USER')" />
-        <custom-filter position="CAS_FILTER" ref="casFilter" />
-        &lt;!&ndash;<custom-filter before="CAS_FILTER" ref="casSingleSignOutFilter" />&ndash;&gt;
-    </http>
-
-    <authentication-manager alias="authenticationManager">
-        <authentication-provider ref="casAuthenticationProvider" />
-    </authentication-manager>
-
-    <beans:bean class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler"/>
-
-    <beans:bean id="casEntryPoint" class="org.springframework.security.cas.web.CasAuthenticationEntryPoint">
-        <beans:property name="loginUrl" value="https://tomcat:8443/cas/login" />
-        <beans:property name="serviceProperties" ref="casServiceProperties" />
-    </beans:bean>
-
-    <beans:bean id="casServiceProperties" class="org.springframework.security.cas.ServiceProperties">
-        <beans:property name="sendRenew" value="false" />
-        <beans:property name="service" value="http://tomcat:8080/app1/j_spring_cas_security_check" />
-    </beans:bean>
-
-    <beans:bean id="casFilter" class="org.springframework.security.cas.web.CasAuthenticationFilter">
-        <beans:property name="authenticationManager" ref="authenticationManager" />
-    </beans:bean>
-
-    <beans:bean id="casSingleSignOutFilter" class="org.jasig.cas.client.session.SingleSignOutFilter">
-    </beans:bean>
-
-    <beans:bean id="exceptionTranslationFilter" class="org.springframework.security.web.access.ExceptionTranslationFilter">
-        <beans:property name="authenticationEntryPoint" ref="casEntryPoint" />
-        <beans:property name="accessDeniedHandler" ref="accessDeniedHandler" />
-    </beans:bean>
-
-    <beans:bean id="accessDeniedHandler" class="org.springframework.security.web.access.AccessDeniedHandlerImpl">
-        <beans:property name="errorPage" value="/error?id=accessDenied"/>
-    </beans:bean>
-
-    <beans:bean id="casAuthenticationProvider" class="org.springframework.security.cas.authentication.CasAuthenticationProvider">
-        <beans:property name="userDetailsService" ref="ldapUserDetailsService" />
-        <beans:property name="serviceProperties" ref="casServiceProperties" />
-        <beans:property name="ticketValidator">
-                <beans:bean class="org.jasig.cas.client.validation.Cas20ServiceTicketValidator">
-                    <beans:constructor-arg index="0" value="https://tomcat:8443/cas" />
-                </beans:bean>
-        </beans:property>
-        <beans:property name="key" value="nestorurquiza_auth_provider_id" />
-    </beans:bean>
-
-    <ldap-user-service id="ldapUserDetailsService" user-search-base="ou=users,ou=system" user-search-filter="(uid={0})"
-            group-search-base="ou=groups,ou=system" group-search-filter="(cn={0})" group-role-attribute="cn"
-            server-ref="apacheDsLdapServer" />
-
-    <ldap-server id="apacheDsLdapServer" manager-dn="uid=admin,ou=system" manager-password="secret" port="10389"
-            url="ldap://tomcat:10389/" />
-
-</beans:beans>-->
