@@ -9,5 +9,7 @@
 <body>
 Aplikacja: ${appName}<br />
 <sec:authorize access="isAuthenticated()">
-    Użytkownik: <sec:authentication property="principal.username" /><br /><br />
+    Użytkownik: <sec:authentication property="principal.username" /><br />
+    <a href="https://tomcat:8443/cas/logout">Wyloguj się</a>
+    <br /><br />
 </sec:authorize>
