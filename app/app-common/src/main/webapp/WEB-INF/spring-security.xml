@@ -13,16 +13,16 @@
     <sec:ldap-server id="apacheDsLdapServer" manager-dn="uid=admin,ou=system" manager-password="secret" port="10389"
                      url="ldap://tomcat:10389/" />
 
+    <sec:authentication-manager alias="authenticationManager">
+        <sec:authentication-provider ref="preAuthAuthProvider"/>
+    </sec:authentication-manager>
+
     <bean id="springSecurityFilterChain" class="org.springframework.security.web.FilterChainProxy">
         <sec:filter-chain-map path-type="ant">
             <sec:filter-chain pattern="/secured*" filters="casAuthenticationFilter, casValidationFilter, wrappingFilter,j2eePreAuthFilter, fsi"/>
             <sec:filter-chain pattern="/home*" filters="wrappingFilter, j2eePreAuthFilter, fsi" />
         </sec:filter-chain-map>
     </bean>
-
-    <sec:authentication-manager alias="authenticationManager">
-        <sec:authentication-provider ref="preAuthAuthProvider"/>
-    </sec:authentication-manager>
 
     <bean id="webExpressionHandler" class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler" />
 
